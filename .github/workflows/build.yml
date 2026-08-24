@@ -66,9 +66,9 @@ jobs:
 
       - name: Install Tools and Dependencies
         run: |
-          choco install ninja nasm -y
+          choco install ninja nasm yasm -y
           cd C:\vcpkg
-          vcpkg install opus:x64-windows-static libvpx:x64-windows-static libyuv:x64-windows-static
+          vcpkg install opus:x64-windows-static libvpx:x64-windows-static libyuv:x64-windows-static aom:x64-windows-static
 
       - name: Build RustDesk Windows Executable
         shell: cmd
