@@ -62,18 +62,12 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Download Prebuilt Codecs & Setup Environment
-        shell: bash
+      - name: Install Tools
         run: |
-          cd rustdesk-src
-          # Baixa as dependencias pre-compiladas oficiais
-          curl -L -o prebuilt.zip https://github.com/rustdesk-org/vcpkg-libvpx/releases/download/2024-03-27/vcpkg_installed.zip || true
-          if [ -f prebuilt.zip ]; then
-            unzip -q -o prebuilt.zip
-          fi
+          choco install ninja nasm -y
 
       - name: Build RustDesk Windows Executable
-        shell: bash
+        shell: cmd
         run: |
           cd rustdesk-src
           python build.py --flutter
