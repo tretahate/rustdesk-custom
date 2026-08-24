@@ -7,80 +7,48 @@ jobs:
   build:
     name: Build Windows Client
     runs-on: windows-2022
-    env:
-      VCPKG_ROOT: C:\vcpkg
     steps:
       - name: Checkout custom repository
         uses: actions/checkout@v4
 
-      - name: Clone RustDesk with submodules
+      - name: Clone RustDesk repository
         run: |
           git clone --recurse-submodules --depth 1 https://github.com/rustdesk/rustdesk.git rustdesk-src
 
-      - name: Inject Dr. iRepair Privacy Banner
+      - name: Inject Dr. iRepair Banner
         shell: bash
         run: |
           mkdir -p rustdesk-src/flutter/assets/images
-          mkdir -p rustdesk-src/flutter/lib/desktop/widgets
+          if [ -f "privacy_banner.png" ]; then
+            cp privacy_banner.png rustdesk-src/flutter/assets/images/
+          fi
 
-          cp privacy_banner.png rustdesk-src/flutter/assets/images/privacy_banner.png
-
-          sed -i 's|- assets/|- assets/\n    - assets/images/privacy_banner.png|g' rustdesk-src/flutter/pubspec.yaml || true
-
-          cat << 'EOF' > rustdesk-src/flutter/lib/desktop/widgets/privacy_screen.dart
-          import 'package:flutter/material.dart';
-
-          class PrivacyScreen extends StatelessWidget {
-            const PrivacyScreen({Key? key}) : super(key: key);
-
-            @override
-            Widget build(BuildContext context) {
-              return Scaffold(
-                backgroundColor: Colors.black,
-                body: Center(
-                  child: Image.asset(
-                    'assets/images/privacy_banner.png',
-                    fit: BoxFit.contain,
-                  ),
-                ),
-              );
-            }
-          }
-          EOF
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.6'
+          channel: 'stable'
 
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: x86_64-pc-windows-msvc
 
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.19.x'
-          channel: 'stable'
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      - name: Install Tools and Dependencies
+      - name: Install System Dependencies & Codegen
         run: |
           choco install ninja nasm yasm -y
           cargo install flutter_rust_bridge_codegen --version 1.80.1 --features structopt
+          echo "$HOME/.cargo/bin" >> $env:GITHUB_PATH
+          echo "C:\Users\runneradmin\.cargo\bin" >> $env:GITHUB_PATH
+          echo "VCPKG_ROOT=C:\vcpkg" >> $env:GITHUB_ENV
           cd C:\vcpkg
           vcpkg install opus:x64-windows-static libvpx:x64-windows-static libyuv:x64-windows-static aom:x64-windows-static
 
-      - name: Generate Flutter Rust Bridge
+      - name: Build Windows Executable
         shell: cmd
         run: |
           cd rustdesk-src
           flutter_rust_bridge_codegen --rust-input src/flutter_ffi.rs --dart-output flutter/lib/generated_bridge.dart --rust-output src/bridge_generated.rs
-
-      - name: Build RustDesk Windows Executable
-        shell: cmd
-        run: |
-          cd rustdesk-src
           python build.py --flutter
 
       - name: Upload Dr. iRepair Executable
