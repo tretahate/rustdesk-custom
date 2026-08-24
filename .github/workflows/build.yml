@@ -7,6 +7,8 @@ jobs:
   build:
     name: Build Windows Client
     runs-on: windows-2022
+    env:
+      VCPKG_ROOT: C:\vcpkg
     steps:
       - name: Checkout custom repository
         uses: actions/checkout@v4
@@ -62,9 +64,11 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install Tools
+      - name: Install Tools and Dependencies
         run: |
           choco install ninja nasm -y
+          cd C:\vcpkg
+          vcpkg install opus:x64-windows-static libvpx:x64-windows-static libyuv:x64-windows-static
 
       - name: Build RustDesk Windows Executable
         shell: cmd
