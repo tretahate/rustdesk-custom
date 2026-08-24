@@ -1,0 +1,73 @@
+name: Build Dr. iRepair RustDesk
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Windows Client
+    runs-on: windows-2022
+    steps:
+      - name: Checkout custom files
+        uses: actions/checkout@v4
+
+      - name: Clone RustDesk official repository
+        run: |
+          git clone --depth 1 https://github.com/rustdesk/rustdesk.git rustdesk-src
+
+      - name: Inject Dr. iRepair Privacy Banner
+        shell: bash
+        run: |
+          # Copia a imagem personalizada para a pasta de assets do Flutter
+          cp privacy_banner.png rustdesk-src/flutter/assets/images/privacy_banner.png
+          
+          # Registra a imagem no pubspec do Flutter
+          sed -i 's|- assets/images/|- assets/images/\n    - assets/images/privacy_banner.png|g' rustdesk-src/flutter/pubspec.yaml
+          
+          # Substitui a tela padrao para exibir o banner centralizado em tela cheia
+          cat << 'EOF' > rustdesk-src/flutter/lib/desktop/widgets/privacy_screen.dart
+          import 'package:flutter/material.dart';
+
+          class PrivacyScreen extends StatelessWidget {
+            const PrivacyScreen({Key? key}) : super(key: key);
+
+            @override
+            Widget build(BuildContext context) {
+              return Scaffold(
+                backgroundColor: Colors.black,
+                body: Center(
+                  child: Image.asset(
+                    'assets/images/privacy_banner.png',
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              );
+            }
+          }
+          EOF
+
+      - name: Setup Rust & Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.x'
+          channel: 'stable'
+
+      - name: Install LLVM and Rust
+        run: |
+          choco install llvm -y
+          rustup default stable
+          rustup target add x86_64-pc-windows-msvc
+
+      - name: Build RustDesk Windows Executable
+        shell: bash
+        run: |
+          cd rustdesk-src
+          python3 ./build.py --flutter
+
+      - name: Upload Dr. iRepair Executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: Dr_iRepair_Suporte_Windows
+          path: |
+            rustdesk-src/target/release/rustdesk.exe
+            rustdesk-src/build/windows/runner/Release/*
