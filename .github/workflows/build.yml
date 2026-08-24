@@ -8,27 +8,23 @@ jobs:
     name: Build Windows Client
     runs-on: windows-2022
     steps:
-      - name: Checkout custom files
+      - name: Checkout custom repository
         uses: actions/checkout@v4
 
-      - name: Clone RustDesk official repository
+      - name: Clone RustDesk with submodules
         run: |
-          git clone --depth 1 https://github.com/rustdesk/rustdesk.git rustdesk-src
+          git clone --recurse-submodules --depth 1 https://github.com/rustdesk/rustdesk.git rustdesk-src
 
       - name: Inject Dr. iRepair Privacy Banner
         shell: bash
         run: |
-          # Garante que as pastas necessarias existam
           mkdir -p rustdesk-src/flutter/assets/images
           mkdir -p rustdesk-src/flutter/lib/desktop/widgets
 
-          # Copia o banner customizado
           cp privacy_banner.png rustdesk-src/flutter/assets/images/privacy_banner.png
 
-          # Adiciona o asset no pubspec.yaml caso nao esteja presente
           sed -i 's|- assets/|- assets/\n    - assets/images/privacy_banner.png|g' rustdesk-src/flutter/pubspec.yaml || true
 
-          # Cria o widget com a tela do banner
           cat << 'EOF' > rustdesk-src/flutter/lib/desktop/widgets/privacy_screen.dart
           import 'package:flutter/material.dart';
 
@@ -50,20 +46,27 @@ jobs:
           }
           EOF
 
-      - name: Setup Rust & Flutter
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.19.x'
           channel: 'stable'
 
-      - name: Install LLVM and Rust
+      - name: Install vcpkg dependencies and LLVM
         run: |
           choco install llvm -y
-          rustup default stable
-          rustup target add x86_64-pc-windows-msvc
+          cd rustdesk-src
+          vcpkg install libvpx:x64-windows-static libyuv:x64-windows-static opus:x64-windows-static
 
       - name: Build RustDesk Windows Executable
         shell: bash
+        env:
+          VCPKG_ROOT: C:/vcpkg
         run: |
           cd rustdesk-src
           python3 ./build.py --flutter
