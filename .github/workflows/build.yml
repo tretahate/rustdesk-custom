@@ -57,11 +57,11 @@ jobs:
           flutter-version: '3.19.x'
           channel: 'stable'
 
-      - name: Install vcpkg dependencies and LLVM
+      - name: Install Dependencies
         run: |
-          choco install llvm -y
+          choco install ninja nasm -y
           cd rustdesk-src
-          vcpkg install libvpx:x64-windows-static libyuv:x64-windows-static opus:x64-windows-static
+          vcpkg install --triplet x64-windows-static
 
       - name: Build RustDesk Windows Executable
         shell: bash
