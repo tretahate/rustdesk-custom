@@ -67,8 +67,15 @@ jobs:
       - name: Install Tools and Dependencies
         run: |
           choco install ninja nasm yasm -y
+          cargo install flutter_rust_bridge_codegen --version 1.80.1 --features structopt
           cd C:\vcpkg
           vcpkg install opus:x64-windows-static libvpx:x64-windows-static libyuv:x64-windows-static aom:x64-windows-static
+
+      - name: Generate Flutter Rust Bridge
+        shell: cmd
+        run: |
+          cd rustdesk-src
+          flutter_rust_bridge_codegen --rust-input src/flutter_ffi.rs --dart-output flutter/lib/generated_bridge.dart --rust-output src/bridge_generated.rs
 
       - name: Build RustDesk Windows Executable
         shell: cmd
