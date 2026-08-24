@@ -57,19 +57,26 @@ jobs:
           flutter-version: '3.19.x'
           channel: 'stable'
 
-      - name: Install Dependencies
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Download Prebuilt Codecs & Setup Environment
+        shell: bash
         run: |
-          choco install ninja nasm -y
           cd rustdesk-src
-          vcpkg install --triplet x64-windows-static
+          # Baixa as dependencias pre-compiladas oficiais
+          curl -L -o prebuilt.zip https://github.com/rustdesk-org/vcpkg-libvpx/releases/download/2024-03-27/vcpkg_installed.zip || true
+          if [ -f prebuilt.zip ]; then
+            unzip -q -o prebuilt.zip
+          fi
 
       - name: Build RustDesk Windows Executable
         shell: bash
-        env:
-          VCPKG_ROOT: C:/vcpkg
         run: |
           cd rustdesk-src
-          python3 ./build.py --flutter
+          python build.py --flutter
 
       - name: Upload Dr. iRepair Executable
         uses: actions/upload-artifact@v4
