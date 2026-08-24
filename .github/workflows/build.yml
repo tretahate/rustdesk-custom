@@ -18,13 +18,17 @@ jobs:
       - name: Inject Dr. iRepair Privacy Banner
         shell: bash
         run: |
-          # Copia a imagem personalizada para a pasta de assets do Flutter
+          # Garante que as pastas necessarias existam
+          mkdir -p rustdesk-src/flutter/assets/images
+          mkdir -p rustdesk-src/flutter/lib/desktop/widgets
+
+          # Copia o banner customizado
           cp privacy_banner.png rustdesk-src/flutter/assets/images/privacy_banner.png
-          
-          # Registra a imagem no pubspec do Flutter
-          sed -i 's|- assets/images/|- assets/images/\n    - assets/images/privacy_banner.png|g' rustdesk-src/flutter/pubspec.yaml
-          
-          # Substitui a tela padrao para exibir o banner centralizado em tela cheia
+
+          # Adiciona o asset no pubspec.yaml caso nao esteja presente
+          sed -i 's|- assets/|- assets/\n    - assets/images/privacy_banner.png|g' rustdesk-src/flutter/pubspec.yaml || true
+
+          # Cria o widget com a tela do banner
           cat << 'EOF' > rustdesk-src/flutter/lib/desktop/widgets/privacy_screen.dart
           import 'package:flutter/material.dart';
 
